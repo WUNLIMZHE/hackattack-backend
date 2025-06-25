@@ -30,7 +30,7 @@ app.post("/predict", async (req, res) => {
       return res.status(400).json({ error: "'features' must be an array" });
     }
 
-    const response = await axios.post("http://localhost:8000/predict", inputData);
+    const response = await axios.post("http://ml:8000/predict", inputData);
     res.json({
       prediction: response.data.prediction,
       probabilities: response.data.probabilities
