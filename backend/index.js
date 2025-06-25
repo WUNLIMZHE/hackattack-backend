@@ -1,10 +1,13 @@
 import express from "express";
 import bodyParser from "body-parser";
 import axios from "axios"
+import { configDotenv } from "dotenv";
+
+configDotenv(); // ✅ Load .env variables into process.env
 
 const app = express();
 const port = 3000;
-const masterKey = "4VGP2DN-6EWM4SJ-N6FGRHV-Z3PR3TT";
+const ML_API_URL = process.env.ML_API_URL;
 
 // app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
@@ -30,7 +33,7 @@ app.post("/predict", async (req, res) => {
       return res.status(400).json({ error: "'features' must be an array" });
     }
 
-    const response = await axios.post("http://ml:8000/predict", inputData);
+    const response = await axios.post(`${ML_API_URL}/predict`, inputData);
     res.json({
       prediction: response.data.prediction,
       probabilities: response.data.probabilities
