@@ -9,6 +9,9 @@ services:
       - ml
     environment:
       - ML_API_URL=${ML_API_URL}
+    volumes:
+    - ./backend:/app
+    - /app/node_modules
     restart: always
 
   ml:
@@ -16,3 +19,5 @@ services:
     ports:
       - "8000:8000"
     restart: always
+    volumes:
+    - ./ml_service:/app

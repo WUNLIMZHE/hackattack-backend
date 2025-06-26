@@ -30,4 +30,4 @@ def predict(data: InputData):
 def predict(data: InputData):
     
     # Return prediction and probabilities
-    return {"Water monitoring prediction successfully connected. WIP..."}
+    return {"prediction": 1, "probabilities": 100}
