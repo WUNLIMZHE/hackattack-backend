@@ -25,7 +25,7 @@ app.get("/location/:id", (req, res) =>{
 
 //[29.8,59.1,5.2,17.9,18.9,9.2,1.72,6.3,319]
 // POST a new EBM prediction
-app.post("/predict", async (req, res) => {
+app.post("/predict-air-monitoring", async (req, res) => {
   try {
     const inputData = req.body;
 
@@ -33,7 +33,7 @@ app.post("/predict", async (req, res) => {
       return res.status(400).json({ error: "'features' must be an array" });
     }
 
-    const response = await axios.post(`${ML_API_URL}/predict`, inputData);
+    const response = await axios.post(`${ML_API_URL}/predict-air-monitoring`, inputData);
     res.json({
       prediction: response.data.prediction,
       probabilities: response.data.probabilities
@@ -48,6 +48,30 @@ app.post("/predict", async (req, res) => {
   }
 });
 
+//[29.8,59.1,5.2,17.9,18.9,9.2,1.72,6.3,319]
+// POST a new EBM prediction
+app.post("/predict-water-monitoring", async (req, res) => {
+  try {
+    const inputData = req.body;
+
+    if (!inputData.features || !Array.isArray(inputData.features)) {
+      return res.status(400).json({ error: "'features' must be an array" });
+    }
+
+    const response = await axios.post(`${ML_API_URL}/predict-water-monitoring`, inputData);
+    res.json({
+      prediction: response.data.prediction,
+      probabilities: response.data.probabilities
+    });
+  } catch (error) {
+    console.error(req.body.features);
+    console.error("EBM API call failed:", error.message);
+    if (error.response) {
+      console.error("Response from EBM:", error.response.data);
+    }
+    res.status(500).json({ error: "Failed to get prediction from EBM service" });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Successfully started server on port ${port}.`);

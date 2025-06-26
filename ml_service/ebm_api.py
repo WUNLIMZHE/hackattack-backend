@@ -14,7 +14,7 @@ app = FastAPI()
 class InputData(BaseModel):
     features: list[float]
 
-@app.post("/predict")
+@app.post("/predict-air-monitoring")
 def predict(data: InputData):
     # Convert input to NumPy array
     input_array = np.array([data.features])
@@ -25,3 +25,9 @@ def predict(data: InputData):
 
     # Return prediction and probabilities
     return {"prediction": prediction, "probabilities": probabilities}
+
+@app.post("/predict-water-monitoring")
+def predict(data: InputData):
+    
+    # Return prediction and probabilities
+    return {"Water monitoring prediction successfully connected. WIP..."}

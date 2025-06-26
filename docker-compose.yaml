@@ -8,9 +8,11 @@ services:
     depends_on:
       - ml
     environment:
-      - ML_API_URL=http://ml:8000
+      - ML_API_URL={ML_API_URL}
+    restart: always
 
   ml:
     build: ./ml_service
     ports:
       - "8000:8000"
+    restart: always
