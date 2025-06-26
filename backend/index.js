@@ -8,9 +8,15 @@ configDotenv(); // ✅ Load .env variables into process.env
 const app = express();
 const port = 3000;
 const ML_API_URL = process.env.ML_API_URL;
-
+console.log("📦 ML_API_URL is:", ML_API_URL);
 // app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
+
+
+app.post("/ping", (req, res) => {
+  res.json({ message: "pong" });
+});
+
 
 //1. GET method
 app.get("/random", (req, res) => {
