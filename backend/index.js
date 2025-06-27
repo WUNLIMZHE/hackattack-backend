@@ -3,6 +3,7 @@ import bodyParser from "body-parser";
 import axios from "axios"
 import { configDotenv } from "dotenv";
 
+
 configDotenv(); // ✅ Load .env variables into process.env
 
 const app = express();
@@ -78,6 +79,10 @@ app.post("/predict-water-monitoring", async (req, res) => {
     res.status(500).json({ error: "Failed to get prediction from EBM service" });
   }
 });
+
+import chatRoutes from './chatbot.js';
+app.use('/api/chat', chatRoutes);
+
 
 app.listen(port, () => {
   console.log(`Successfully started server on port ${port}.`);
