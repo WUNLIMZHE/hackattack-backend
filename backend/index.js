@@ -2,6 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import axios from "axios"
 import { configDotenv } from "dotenv";
+import cors from 'cors';
 
 
 configDotenv(); // ✅ Load .env variables into process.env
@@ -12,6 +13,8 @@ const ML_API_URL = process.env.ML_API_URL;
 console.log("📦 ML_API_URL is:", ML_API_URL);
 // app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
+
+app.use(cors());
 
 
 app.post("/ping", (req, res) => {
