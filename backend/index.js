@@ -2,6 +2,8 @@ import express from "express";
 import bodyParser from "body-parser";
 import axios from "axios"
 import { configDotenv } from "dotenv";
+import cors from 'cors';
+
 
 configDotenv(); // ✅ Load .env variables into process.env
 
@@ -11,6 +13,8 @@ const ML_API_URL = process.env.ML_API_URL;
 console.log("📦 ML_API_URL is:", ML_API_URL);
 // app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
+
+app.use(cors());
 
 
 app.post("/ping", (req, res) => {
@@ -31,8 +35,6 @@ app.get("/location/:id", (req, res) =>{
 
 //[29.8,59.1,5.2,17.9,18.9,9.2,1.72,6.3,319]
 // POST a new EBM prediction
-// Positive contribution → pushes prediction higher (e.g., worse air).
-// Negative contribution → pulls prediction lower (e.g., better air).
 app.post("/predict-air-monitoring", async (req, res) => {
   try {
     const inputData = req.body;
@@ -44,8 +46,7 @@ app.post("/predict-air-monitoring", async (req, res) => {
     const response = await axios.post(`${ML_API_URL}/predict-air-monitoring`, inputData);
     res.json({
       prediction: response.data.prediction,
-      probabilities: response.data.probabilities,
-      top_features: response.data.top_features
+      probabilities: response.data.probabilities
     });
   } catch (error) {
     console.error(req.body.features);
@@ -81,6 +82,10 @@ app.post("/predict-water-monitoring", async (req, res) => {
     res.status(500).json({ error: "Failed to get prediction from EBM service" });
   }
 });
+
+import chatRoutes from './chatbot.js';
+app.use('/api/chat', chatRoutes);
+
 
 app.listen(port, () => {
   console.log(`Successfully started server on port ${port}.`);
