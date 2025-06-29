@@ -31,6 +31,8 @@ app.get("/location/:id", (req, res) =>{
 
 //[29.8,59.1,5.2,17.9,18.9,9.2,1.72,6.3,319]
 // POST a new EBM prediction
+// Positive contribution → pushes prediction higher (e.g., worse air).
+// Negative contribution → pulls prediction lower (e.g., better air).
 app.post("/predict-air-monitoring", async (req, res) => {
   try {
     const inputData = req.body;
@@ -42,7 +44,8 @@ app.post("/predict-air-monitoring", async (req, res) => {
     const response = await axios.post(`${ML_API_URL}/predict-air-monitoring`, inputData);
     res.json({
       prediction: response.data.prediction,
-      probabilities: response.data.probabilities
+      probabilities: response.data.probabilities,
+      top_features: response.data.top_features
     });
   } catch (error) {
     console.error(req.body.features);

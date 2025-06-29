@@ -23,8 +23,44 @@ def predict(data: InputData):
     prediction = int(model.predict(input_array)[0])
     probabilities = model.predict_proba(input_array)[0].tolist()
 
-    # Return prediction and probabilities
-    return {"prediction": prediction, "probabilities": probabilities}
+    # Get local explanation
+    explanation = model.explain_local(input_array, [0])
+    raw_scores = explanation.data(0)['scores']
+    feature_names = explanation.data(0)['names']
+
+    # Ensure scores are a flat list of numbers.
+    # This handles cases where explanation.data(0)['scores'] might return
+    # a list of single-element arrays or a 2D array.
+    scores = []
+    for s in raw_scores:
+        if isinstance(s, (list, np.ndarray)):
+            scores.append(s[0] if len(s) > 0 else 0.0) # Take the first element if it's an array/list
+        else:
+            scores.append(s) # Otherwise, append as is (it's already a number)
+
+    # Normalize to percentage
+    total = sum(abs(s) for s in scores)
+    top_features = sorted(
+        zip(feature_names, scores),
+        key=lambda x: abs(x[1]),
+        reverse=True
+    )
+
+    # Return top 5 features (or any number you prefer)
+    top_features_with_percentage = [
+        {
+            "feature": f,
+            "contribution": s,
+            "percent": round(abs(s) / total * 100, 2) if total != 0 else 0.0
+        }
+        for f, s in top_features
+    ]
+    
+    return {
+        "prediction": prediction,
+        "probabilities": probabilities,
+        "top_features": top_features_with_percentage
+    }
 
 @app.post("/predict-water-monitoring")
 def predict(data: InputData):
