@@ -1,1 +1,10 @@
+# Ignore environment variables
 .env
+
+# Optional: ignore service-specific env files too
+/backend/.env
+
+# Node modules and Python caches
+node_modules/
+__pycache__/
+*.pyc
