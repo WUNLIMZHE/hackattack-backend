@@ -4,10 +4,9 @@ export const VALID_KEYS = ["1234-ABCD-5678", "ZXCV-9999-TEST"];
 export const SUPPORTED_SENSORS = {
   pm10: "µg/m³",
   "pm2.5": "µg/m³",
-  pm2_5: "µg/m³",
   co: "ppm",
   co2: "ppm",
-  o3: "ppm",
+  // o3: "ppm",
   temperature: "°C",
   humidity: "%",
   no2: "ppb",
@@ -24,6 +23,24 @@ export const locationMap = {
     },
   },
 };
+
+export function jsonToCSV(json) {
+  const { company, date, sensors } = json;
+  const rows = [["time", "sensor", "value"]];
+
+  for (const sensorObj of sensors) {
+    const { sensor, data } = sensorObj;
+
+    for (const { time, value } of data) {
+      rows.push([time, sensor, value ?? ""]);
+    }
+  }
+
+  return {
+    filename: `${company},${date}.csv`,
+    content: rows.map((r) => r.join(",")).join("\n")
+  };
+}
 
 export const haversine = (lat1, lon1, lat2, lon2) => {
   const toRad = deg => deg * (Math.PI / 180);
@@ -72,6 +89,9 @@ export const simulateSensorData = (sensor) => {
     case "co":
       value = +(Math.random() * 9 + 0.5).toFixed(2);
       break;
+    case "co2":
+      value = +(Math.random() * 1600 + 400).toFixed(0);  // Range: 400–2000 ppm
+      break;
     case "temperature":
       value = +(Math.random() * 10 + 25).toFixed(1);
       break;
@@ -86,4 +106,33 @@ export const simulateSensorData = (sensor) => {
       value = null;
   }
   return value;
+}
+
+export const generateCompanySensorData = ({ sensors, date, company }) => {
+  const now = new Date();
+  const currentHour = (now.getUTCHours() + 8) % 24; // for UTC+8
+  const responseData = [];
+
+  for (const sensor of sensors) {
+    if (!validateSensor(sensor)) {
+      throw new Error(`Invalid sensor type: ${sensor}`);
+    }
+
+    const data = [];
+    for (let hour = 0; hour < Math.min(currentHour, 19); hour++) {
+      const value = simulateSensorData(sensor);
+      const timeLabel = `${hour.toString().padStart(2, "0")}:00`;
+      data.push({ time: timeLabel, value });
+    }
+
+    responseData.push({ sensor, data });
+  }
+
+  return {
+    company,
+    date,
+    now,
+    currentHour,
+    sensors: responseData,
+  };
 }

@@ -3,6 +3,7 @@ import bodyParser from "body-parser";
 import axios from "axios";
 import { configDotenv } from "dotenv";
 
+
 configDotenv(); // ✅ Load .env variables into process.env
 
 const app = express();
@@ -19,7 +20,9 @@ import {
   classifyAQI,
   validateSensor,
   generateTrendData,
-  simulateSensorData
+  simulateSensorData,
+  generateCompanySensorData,
+  jsonToCSV
 } from "./utils.js";
 
 import {checkApiKey} from "./checkApiKey.js";
@@ -40,58 +43,18 @@ app.get("/location/:id", (req, res) => {
   res.json();
 });
 
-// request body:
-// {
-//   "sensors": ["pm2.5", "pm10", "co2", "no2"],
-//   "date": "2025-06-30",
-//   "company": "hack-attack-2.0"
-// }
-// In actual implementation, we don't need sensors as request body since we can track the sensors via company 
-app.post("/update-sensors-data", (req, res) => {
-  const { sensors, date, company } = req.body;
+app.post("/download-sensor-csv", (req, res) => {
+  try {
+    const result = generateCompanySensorData(req.body);
+    const { filename, content } = jsonToCSV(result);
 
-  if (!Array.isArray(sensors) || !date || !company) {
-    return res.status(400).json({
-      error: "Missing or invalid body parameters: sensors (array), date, company."
-    });
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", "text/csv");
+    res.send(content);
+  } catch (err) {
+    console.error("Error generating CSV:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
-
-  const now = new Date();
-  const currentHour = now.getHours();
-
-  const responseData = [];
-
-  for (const sensor of sensors) {
-    if (!validateSensor(sensor)) {
-      return res.status(400).json({ error: `Invalid sensor type: ${sensor}` });
-    }
-
-    const unit = SUPPORTED_SENSORS[sensor];
-    const data = [];
-
-    for (let hour = 0; hour < Math.min(currentHour, 19); hour++) {
-      const value = simulateSensorData(sensor);
-      const timeLabel = `${hour.toString().padStart(2, "0")}:00`;
-
-      data.push({
-        time: timeLabel,
-        value,
-        status: classifyAQI(sensor, value),
-      });
-    }
-
-    responseData.push({
-      sensor,
-      unit,
-      data,
-    });
-  }
-
-  res.json({
-    company,
-    date,
-    sensors: responseData,
-  });
 });
 
 // request body:
@@ -110,42 +73,12 @@ app.post("/update-sensors-data", (req, res) => {
     });
   }
 
-  const now = new Date();
-  const currentHour = now.getHours();
-
-  const responseData = [];
-
-  for (const sensor of sensors) {
-    if (!validateSensor(sensor)) {
-      return res.status(400).json({ error: `Invalid sensor type: ${sensor}` });
-    }
-
-    const unit = SUPPORTED_SENSORS[sensor];
-    const data = [];
-
-    for (let hour = 0; hour < Math.min(currentHour, 19); hour++) {
-      const value = simulateSensorData(sensor);
-      const timeLabel = `${hour.toString().padStart(2, "0")}:00`;
-
-      data.push({
-        time: timeLabel,
-        value,
-        status: classifyAQI(sensor, value),
-      });
-    }
-
-    responseData.push({
-      sensor,
-      unit,
-      data,
-    });
+  try {
+    const result = generateCompanySensorData({ sensors, date, company });
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
-
-  res.json({
-    company,
-    date,
-    sensors: responseData,
-  });
 });
 
 //[29.8,59.1,5.2,17.9,18.9,9.2,1.72,6.3,319]
