@@ -8,3 +8,6 @@
 node_modules/
 __pycache__/
 *.pyc
+
+# Ignore firebase config file
+/backend/heardattack2-firebase-adminsdk-fbsvc-638c04b579.json
