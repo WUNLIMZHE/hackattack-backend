@@ -2,7 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import axios from "axios";
 import { configDotenv } from "dotenv";
-
+import cors from 'cors';
 
 configDotenv(); // ✅ Load .env variables into process.env
 
@@ -14,21 +14,27 @@ const ML_API_URL = process.env.ML_API_URL;
 app.use(express.json());
 
 import {
-  SUPPORTED_SENSORS,
+  SUPPORTED_AIR_SENSORS,
+  SUPPORTED_WATER_SENSORS,
   locationMap,
   haversine,
   classifyAQI,
   validateSensor,
   generateTrendData,
-  simulateSensorData,
-  generateCompanySensorData,
-  jsonToCSV
+  simulateSensorAirData,
+  simulateSensorWaterData,
+  generateCompanySensorAirData,
+  generateCompanySensorWaterData,
+  jsonToCSV,
+  simplifyTopFeatures
 } from "./utils.js";
 
 import {checkApiKey} from "./checkApiKey.js";
 
 // Example sensor data
 const sensorData = [/* same as before */];
+app.use(cors());
+
 
 app.post("/ping", (req, res) => {
   res.json({ message: "pong" });
@@ -43,9 +49,23 @@ app.get("/location/:id", (req, res) => {
   res.json();
 });
 
-app.post("/download-sensor-csv", (req, res) => {
+app.post("/download-sensor-air-csv", (req, res) => {
   try {
-    const result = generateCompanySensorData(req.body);
+    const result = generateCompanySensorAirData(req.body);
+    const { filename, content } = jsonToCSV(result);
+
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", "text/csv");
+    res.send(content);
+  } catch (err) {
+    console.error("Error generating CSV:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.post("/download-sensor-water-csv", (req, res) => {
+  try {
+    const result = generateCompanySensorWaterData(req.body);
     const { filename, content } = jsonToCSV(result);
 
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
@@ -64,7 +84,7 @@ app.post("/download-sensor-csv", (req, res) => {
 //   "company": "hack-attack-2.0"
 // }
 // In actual implementation, we don't need sensors as request body since we can track the sensors via company 
-app.post("/update-sensors-data", (req, res) => {
+app.post("/update-sensors-air-data", (req, res) => {
   const { sensors, date, company } = req.body;
 
   if (!Array.isArray(sensors) || !date || !company) {
@@ -74,7 +94,30 @@ app.post("/update-sensors-data", (req, res) => {
   }
 
   try {
-    const result = generateCompanySensorData({ sensors, date, company });
+    const result = generateCompanySensorAirData({ sensors, date, company });
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+
+// {
+//   "sensors": ["total_dissolved_solids", "odor", "turbidity", "chloride", "time_of_day", "color"],
+//   "date": "2025-06-30",
+//   "company": "hack-attack-2.0"
+// }
+app.post("/update-sensors-water-data", (req, res) => {
+  const { sensors, date, company } = req.body;
+
+  if (!Array.isArray(sensors) || !date || !company) {
+    return res.status(400).json({
+      error: "Missing or invalid body parameters: sensors (array), date, company."
+    });
+  }
+
+  try {
+    const result = generateCompanySensorWaterData({ sensors, date, company });
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -83,8 +126,6 @@ app.post("/update-sensors-data", (req, res) => {
 
 //[29.8,59.1,5.2,17.9,18.9,9.2,1.72,6.3,319]
 // POST a new EBM prediction
-// Positive contribution → pushes prediction higher (e.g., worse air).
-// Negative contribution → pulls prediction lower (e.g., better air).
 app.post("/predict-air-monitoring", async (req, res) => {
   try {
     const inputData = req.body;
@@ -100,7 +141,7 @@ app.post("/predict-air-monitoring", async (req, res) => {
     res.json({
       prediction: response.data.prediction,
       probabilities: response.data.probabilities,
-      top_features: response.data.top_features,
+      top_features: simplifyTopFeatures(response.data.top_features),
     });
   } catch (error) {
     console.error(req.body.features);
@@ -114,7 +155,10 @@ app.post("/predict-air-monitoring", async (req, res) => {
   }
 });
 
-//[29.8,59.1,5.2,17.9,18.9,9.2,1.72,6.3,319]
+
+// {
+//   "features": [332.1187886, 1.626212487, 0.022683282, 122.7997723, 4, 0]
+// }
 // POST a new EBM prediction
 app.post("/predict-water-monitoring", async (req, res) => {
   try {
@@ -124,13 +168,32 @@ app.post("/predict-water-monitoring", async (req, res) => {
       return res.status(400).json({ error: "'features' must be an array" });
     }
 
+    const originalFeatures = inputData.features;
+    const colorIndex = originalFeatures[5];
+    if (
+      typeof colorIndex !== "number" ||
+      colorIndex < 0 ||
+      colorIndex > 4 ||
+      !Number.isInteger(colorIndex)
+    ) {
+      return res.status(400).json({ error: "Invalid color index (must be integer 0–4)" });
+    }
+
+    // Generate one-hot encoding
+    const oneHotColor = [0, 0, 0, 0, 0];
+    oneHotColor[colorIndex] = 1;
+
+    // Build full feature array
+    const fullFeatures = [...originalFeatures.slice(0, 5), ...oneHotColor];
+
     const response = await axios.post(
       `${ML_API_URL}/predict-water-monitoring`,
-      inputData
+      { features: fullFeatures }
     );
     res.json({
       prediction: response.data.prediction,
       probabilities: response.data.probabilities,
+      top_features: simplifyTopFeatures(response.data.top_features), 
     });
   } catch (error) {
     console.error(req.body.features);
@@ -157,9 +220,9 @@ app.get("/realtime", checkApiKey, (req, res) => {
   }
 
   let value;
-  value = simulateSensorData(sensor);
+  value = simulateSensorAirData(sensor);
 
-  const unit = SUPPORTED_SENSORS[sensor];
+  const unit = SUPPORTED_AIR_SENSORS[sensor];
   res.json({
     sensor,
     unit,
@@ -196,7 +259,7 @@ app.get("/trends", checkApiKey, (req, res) => {
     return res.status(400).json({ error: "Missing required query parameters." });
   }
 
-  const unit = SUPPORTED_SENSORS[sensor];
+  const unit = SUPPORTED_AIR_SENSORS[sensor];
   if (!unit) return res.status(400).json({ error: "Unsupported sensor type." });
 
   res.json({ sensor, unit, location, data: generateTrendData(start, end) });
@@ -239,6 +302,9 @@ app.get("/alerts", checkApiKey, async (req, res) => {
     })),
   });
 });
+import chatRoutes from './chatbot.js';
+app.use('/api/chat', chatRoutes);
+
 
 app.listen(port, () => {
   console.log(`Successfully started server on port ${port}.`);
