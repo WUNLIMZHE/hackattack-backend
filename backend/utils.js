@@ -185,7 +185,7 @@ export const generateCompanySensorWaterData = ({ sensors, date, company }) => {
 
     const data = [];
     for (let hour = 0; hour < Math.min(currentHour, 19); hour++) {
-      const value = simulateSensorAirData(sensor);
+      const value = simulateSensorWaterData(sensor);
       const timeLabel = `${hour.toString().padStart(2, "0")}:00`;
       data.push({ time: timeLabel, value });
     }
