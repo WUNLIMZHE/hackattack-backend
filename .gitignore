@@ -9,4 +9,4 @@ node_modules/
 __pycache__/
 *.pyc
 
-/ml_service/Water Quality Prediction.csv
+ml_service/Water Quality Prediction.csv
