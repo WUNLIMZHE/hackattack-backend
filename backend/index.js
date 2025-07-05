@@ -4,6 +4,10 @@ import axios from "axios";
 import { configDotenv } from "dotenv";
 import cors from 'cors';
 
+
+// Import the Firebase authentication middleware
+import authMiddleware from './authMiddleware.js'; 
+
 configDotenv(); // ✅ Load .env variables into process.env
 
 const app = express();
@@ -43,10 +47,11 @@ app.post("/ping", (req, res) => {
 //1. GET method
 app.get("/random", (req, res) => {});
 
+
 //2. GET method
 app.get("/location/:id", (req, res) => {
   const id = parseInt(req.params.id);
-  res.json();
+  // Your existing logic for /location/:id
 });
 
 app.post("/download-sensor-air-csv", (req, res) => {
@@ -305,6 +310,18 @@ app.get("/alerts", checkApiKey, async (req, res) => {
 import chatRoutes from './chatbot.js';
 app.use('/api/chat', chatRoutes);
 
+// This route will only be accessible if a valid Firebase ID token is provided
+app.get('/protected-route', authMiddleware, (req, res) => {
+  // If we reach here, the Firebase ID token was successfully verified by authMiddleware
+  // req.user contains the decoded token with user information (e.g., uid, email)
+  const userId = req.user.uid;
+  const email = req.user.email;
+
+  res.status(200).json({
+    message: `Hello, authenticated user ${email}! Your UID is ${userId}. This is protected data from the backend.`,
+    userData: req.user // You can send back relevant user data if needed
+  });
+});
 
 app.listen(port, () => {
   console.log(`Successfully started server on port ${port}.`);
