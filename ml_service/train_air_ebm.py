@@ -63,6 +63,6 @@ ebm = ExplainableBoostingClassifier(
 ebm.fit(X_train, y_train)
 
 # Save model to disk
-joblib.dump(ebm, "ebm_model.pkl")
+joblib.dump(ebm, "air_ebm_model.pkl")
 
-print("EBM model trained and saved as ebm_model.pkl")
+print("EBM model trained and saved as air_ebm_model.pkl")
