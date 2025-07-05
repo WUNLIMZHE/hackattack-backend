@@ -11,7 +11,7 @@ __pycache__/
 
 
 # Ignore firebase config file
-/backend/heardattack2-firebase-adminsdk-fbsvc-638c04b579.json
+/backend/heardattack2-firebase-adminsdk-fbsvc-3dc6eb8e74.json
 
 ml_service/Water Quality Prediction.csv
 

@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 
 // Define the path to your service account key file
 // Ensure this path is correct relative to where firebase-admin-init.js is located
-const serviceAccountPath = path.resolve(__dirname, 'heardattack2-firebase-adminsdk-fbsvc-638c04b579.json');
+const serviceAccountPath = path.resolve(__dirname, 'heardattack2-firebase-adminsdk-fbsvc-3dc6eb8e74.json');
 
 // Read the service account key file synchronously
 // In a production environment, consider reading this asynchronously or loading from environment variables
